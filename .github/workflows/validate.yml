@@ -1,0 +1,15 @@
+name: validate-bicep
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bicep validieren
+        run: az bicep build --file bicep/main.bicep
