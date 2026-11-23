@@ -1,11 +1,50 @@
 param location string = resourceGroup().location
 
-resource vnet 'Microsoft.Network/virtualNetworks@2023-09-01' = {
-  name: 'vnet-lab'
-  location: location
-  properties: {
-    addressSpace: {
-      addressPrefixes: [ '10.10.0.0/16' ]
-    }
+module hub 'modules/vnet.bicep' = {
+  name: 'deployHub'
+  params: {
+    name: 'vnet-hub'
+    location: location
+    addressPrefix: '10.0.0.0/16'
+    subnets: [
+      { name: 'snet-shared', properties: { addressPrefix: '10.0.1.0/24' } }
+    ]
   }
+}
+
+module spoke 'modules/vnet.bicep' = {
+  name: 'deploySpoke'
+  params: {
+    name: 'vnet-spoke-app'
+    location: location
+    addressPrefix: '10.1.0.0/16'
+    subnets: [
+      { name: 'snet-app', properties: { addressPrefix: '10.1.1.0/24' } }
+      { name: 'snet-data', properties: { addressPrefix: '10.1.2.0/24', privateEndpointNetworkPolicies: 'Disabled' } }
+    ]
+  }
+}
+
+resource hubToSpoke 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@2023-09-01' = {
+  name: 'vnet-hub/hub-to-spoke'
+  properties: {
+    remoteVirtualNetwork: { id: spoke.outputs.id }
+    allowVirtualNetworkAccess: true
+    allowForwardedTraffic: false
+    allowGatewayTransit: false
+    useRemoteGateways: false
+  }
+  dependsOn: [ hub ]
+}
+
+resource spokeToHub 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@2023-09-01' = {
+  name: 'vnet-spoke-app/spoke-to-hub'
+  properties: {
+    remoteVirtualNetwork: { id: hub.outputs.id }
+    allowVirtualNetworkAccess: true
+    allowForwardedTraffic: false
+    allowGatewayTransit: false
+    useRemoteGateways: false
+  }
+  dependsOn: [ spoke ]
 }

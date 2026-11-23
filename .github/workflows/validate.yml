@@ -13,3 +13,5 @@ jobs:
 
       - name: Bicep validieren
         run: az bicep build --file bicep/main.bicep
+      - name: Bicep linten
+        run: az bicep lint --file bicep/main.bicep
